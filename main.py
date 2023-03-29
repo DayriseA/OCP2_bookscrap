@@ -1,5 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
+import csv
+import datetime
 
 # import csv
 
@@ -16,7 +18,8 @@ def extract_product_infos(product_page_url):
     product_infos["universal_product_code"] = (
         soup.find("th", string="UPC").find_next("td").string
     )
-    product_infos["title"] = soup.find("div", class_="product_main").find("h1").string
+    product_main_div = soup.find("div", class_="product_main")
+    product_infos["title"] = product_main_div.find("h1").string
     product_infos["price_including_tax"] = (
         soup.find("th", string="Price (incl. tax)").find_next("td").string
     )
@@ -33,11 +36,26 @@ def extract_product_infos(product_page_url):
     product_infos["category"] = (
         soup.find("a", href="../category/books_1/index.html").find_next("a").string
     )
-
+    product_infos["review_rating"] = product_main_div.find("p", class_="star-rating")[
+        "class"
+    ][1]
+    product_infos["image_url"] = (
+        soup.select_one("div.item.active").find("img").get("src")
+    )
     return product_infos
 
 
-""" book_infos = extract_product_infos(
+# Enregistrer les infos dans un .csv
+def save_product_infos(product_infos, filename):
+    with open(filename, "w", newline="") as file:
+        writer = csv.writer(file, delimiter=";")
+        writer.writerow(product_infos.keys())
+        writer.writerow(product_infos.values())
+
+
+book_infos = extract_product_infos(
     "http://books.toscrape.com/catalogue/the-requiem-red_995/index.html"
 )
-print(book_infos["category"]) """
+date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+filename = book_infos["title"].replace(" ", "_") + "_" + date_time + ".csv"
+save_product_infos(book_infos, filename)
