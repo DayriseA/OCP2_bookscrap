@@ -3,8 +3,6 @@ from bs4 import BeautifulSoup
 import csv
 import datetime
 
-# import csv
-
 
 # Extraire les infos produits à partir de son url
 def extract_product_infos(product_page_url):
@@ -14,7 +12,7 @@ def extract_product_infos(product_page_url):
     product_infos = {}
 
     # On parse pour trouver les infos voulues:
-    # product_infos["product_page_url"] = product_page_url
+    product_infos["product_page_url"] = product_page_url
     product_infos["universal_product_code"] = (
         soup.find("th", string="UPC").find_next("td").string
     )
@@ -23,7 +21,7 @@ def extract_product_infos(product_page_url):
     product_infos["price_including_tax"] = (
         soup.find("th", string="Price (incl. tax)").find_next("td").string
     )
-    product_infos["price_exluding_tax"] = (
+    product_infos["price_excluding_tax"] = (
         soup.find("th", string="Price (excl. tax)").find_next("td").string
     )
     product_infos["number_available"] = (
@@ -45,7 +43,7 @@ def extract_product_infos(product_page_url):
     return product_infos
 
 
-# Enregistrer les infos dans un .csv
+# Enregistrer les infos d'un produit dans un .csv
 def save_product_infos(product_infos, filename):
     with open(filename, "w", newline="") as file:
         writer = csv.writer(file, delimiter=";")
@@ -53,9 +51,72 @@ def save_product_infos(product_infos, filename):
         writer.writerow(product_infos.values())
 
 
+def extract_whole_category(category_index_url, products_links=[]):
+    page = requests.get(category_index_url).content
+    soup = BeautifulSoup(page, "html.parser")
+    # products_links = []
+    site_root = "http://books.toscrape.com/catalogue/"
+    # Les liens voulus sont tous dans des <h3>:
+    products_list_raw = soup.select("h3 a")
+    # Liste des liens absolus à partir de la liste en relatifs
+    for link in products_list_raw:
+        products_links.append(link.get("href").replace("../../../", site_root))
+
+    # On vérifie s'il y a d'autres pages dans la catégorie
+    check_next = soup.find("li", class_="next")
+    if check_next:
+        current_url_suffixe = category_index_url.split("/")[-1]
+        next_url_suffixe = check_next.find_next("a").get("href")
+        next_url = category_index_url.replace(current_url_suffixe, next_url_suffixe)
+        # Le cas échéant on rappelle la fonction récursivement
+        return extract_whole_category(next_url, products_links)
+    else:
+        return products_links
+
+
+# Enregistrer les infos produits de toute une catégorie en .csv
+def save_category_books_infos(products_infos, filename):
+    with open(filename, "w", newline="") as file:
+        headers = [
+            "product_page_url",
+            "universal_product_code",
+            "title",
+            "price_including_tax",
+            "price_excluding_tax",
+            "number_available",
+            "product_description",
+            "category",
+            "review_rating",
+            "image_url",
+        ]
+        writer = csv.DictWriter(file, fieldnames=headers)
+        writer.writeheader()
+        for product_infos in products_infos:
+            writer.writerow(product_infos)
+
+
 book_infos = extract_product_infos(
     "http://books.toscrape.com/catalogue/the-requiem-red_995/index.html"
 )
+# Variable pour nommer les .csv
 date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
 filename = book_infos["title"].replace(" ", "_") + "_" + date_time + ".csv"
 save_product_infos(book_infos, filename)
+
+category_url = (
+    "http://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+)
+books_links = []
+# Une liste de tous les liens d'une catégorie définie
+books_links = extract_whole_category(category_url, books_links)
+
+# On boucle dessus en utilisant la fonction d'extraction d'infos produits
+books_category_infos = []
+for book_link in books_links:
+    books_category_infos.append(extract_product_infos(book_link))
+
+# Et maintenant on enregistre cette liste de dictionnaires dans un .csv
+date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+current_category = books_category_infos[0]["category"]
+filename = current_category + "_" + date_time + ".csv"
+save_category_books_infos(books_category_infos, filename)
