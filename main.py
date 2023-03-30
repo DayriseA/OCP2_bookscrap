@@ -45,7 +45,7 @@ def extract_product_infos(product_page_url):
 
 # Enregistrer les infos d'un produit dans un .csv
 def save_product_infos(product_infos, filename):
-    with open(filename, "w", newline="") as file:
+    with open(filename, "w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file, delimiter=";")
         writer.writerow(product_infos.keys())
         writer.writerow(product_infos.values())
@@ -77,7 +77,7 @@ def extract_whole_category(category_index_url, products_links=[]):
 
 # Enregistrer les infos produits de toute une catégorie en .csv
 def save_category_books_infos(products_infos, filename):
-    with open(filename, "w", newline="") as file:
+    with open(filename, "w", newline="", encoding="utf-8") as file:
         headers = [
             "product_page_url",
             "universal_product_code",
@@ -136,5 +136,18 @@ current_category = books_category_infos[0]["category"]
 filename = current_category + "_" + date_time + ".csv"
 save_category_books_infos(books_category_infos, filename) """
 
-# Test phase 3: on boucle sur la phase 2
+# Test phase 3: En gros, on boucle sur la phase 2
+categories_link = extract_all_categories("http://books.toscrape.com/index.html")
 
+for link in categories_link:
+    books_links = []
+    books_links = extract_whole_category(link, books_links)
+    books_category_infos = []
+    for book_link in books_links:
+        books_category_infos.append(extract_product_infos(book_link))
+
+    date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+    current_category = books_category_infos[0]["category"]
+    filename = "scrapped_datas/" + current_category + "_" + date_time + ".csv"
+    save_category_books_infos(books_category_infos, filename)
+    print("Enregistrement de la catégorie " + current_category + " terminé")
