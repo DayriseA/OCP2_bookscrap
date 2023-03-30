@@ -4,7 +4,7 @@ import csv
 import datetime
 
 
-# Extraire les infos produits à partir de son url
+# Fct pour extraire les infos d'un produit à partir de son url
 def extract_product_infos(product_page_url):
     # Requête sur url puis transformation en objet soup
     page = requests.get(product_page_url).content
@@ -51,6 +51,7 @@ def save_product_infos(product_infos, filename):
         writer.writerow(product_infos.values())
 
 
+# Fct pour extraire une liste des produits d'une catégorie donnée par son url
 def extract_whole_category(category_index_url, products_links=[]):
     page = requests.get(category_index_url).content
     soup = BeautifulSoup(page, "html.parser")
@@ -95,6 +96,21 @@ def save_category_books_infos(products_infos, filename):
             writer.writerow(product_infos)
 
 
+# Récupérer une liste des liens de toutes les catégories
+def extract_all_categories(website_url):
+    page = requests.get(website_url).content
+    soup = BeautifulSoup(page, "html.parser")
+    categories_anchors = soup.find("ul", class_="nav-list").find_all("a")
+    categories_links = []
+    link_prefix = "http://books.toscrape.com/"
+    for anchor in categories_anchors:
+        link = link_prefix + anchor.get("href")
+        categories_links.append(link)
+    del categories_links[0]  # Le premier lien est une catégorie générique
+    return categories_links
+
+
+""" # Test non intéractif de la phase 1
 book_infos = extract_product_infos(
     "http://books.toscrape.com/catalogue/the-requiem-red_995/index.html"
 )
@@ -103,9 +119,8 @@ date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
 filename = book_infos["title"].replace(" ", "_") + "_" + date_time + ".csv"
 save_product_infos(book_infos, filename)
 
-category_url = (
-    "http://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
-)
+# Test non intéractif de la phase 2
+category_url = "http://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
 books_links = []
 # Une liste de tous les liens d'une catégorie définie
 books_links = extract_whole_category(category_url, books_links)
@@ -119,4 +134,7 @@ for book_link in books_links:
 date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
 current_category = books_category_infos[0]["category"]
 filename = current_category + "_" + date_time + ".csv"
-save_category_books_infos(books_category_infos, filename)
+save_category_books_infos(books_category_infos, filename) """
+
+# Test phase 3: on boucle sur la phase 2
+
