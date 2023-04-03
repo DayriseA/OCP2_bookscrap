@@ -21,40 +21,48 @@ def extract_product_infos(product_page_url):
 
     # Parsing to find the desired informations
     product_infos["product_page_url"] = product_page_url
+    upc = soup.find("th", string="UPC")
     product_infos["universal_product_code"] = (
-        soup.find("th", string="UPC").find_next("td").string
+        upc.find_next("td").string if upc else "Missing data"
     )
     product_main_div = soup.find("div", class_="product_main")
-    product_infos["title"] = product_main_div.find("h1").string
+    title = product_main_div.find("h1")
+    product_infos["title"] = title.string if title else "Missing data"
+    price_incl_tax = soup.find("th", string="Price (incl. tax)")
     product_infos["price_including_tax"] = (
-        soup.find("th", string="Price (incl. tax)").find_next("td").string
+        price_incl_tax.find_next("td").string if price_incl_tax else "Missing data"
     )
+    price_excl_tax = soup.find("th", string="Price (excl. tax)")
     product_infos["price_excluding_tax"] = (
-        soup.find("th", string="Price (excl. tax)").find_next("td").string
+        price_excl_tax.find_next("td").string if price_excl_tax else "Missing data"
     )
+    availability = soup.find("th", string="Availability")
     product_infos["number_available"] = (
-        soup.find("th", string="Availability").find_next("td").string
+        availability.find_next("td").string if availability else "Missing data"
     )
-    product_infos["product_description"] = (
-        soup.find("div", id="product_description").find_next("p").string
-    )
-    # The category always comes after Books in the navigation list
+    product_description = soup.find("div", id="product_description")
+    if product_description:
+        product_infos["product_description"] = product_description.find_next("p").string
+    else:
+        product_infos["product_description"] = "Missing data"
+    category = soup.find("a", href="../category/books_1/index.html")
     product_infos["category"] = (
-        soup.find("a", href="../category/books_1/index.html").find_next("a").string
+        category.find_next("a").string if category else "Missing data"
     )
-    product_infos["review_rating"] = product_main_div.find("p", class_="star-rating")[
-        "class"
-    ][1]
-    product_infos["image_url"] = (
-        soup.select_one("div.item.active").find("img").get("src")
+    star_rating = product_main_div.find("p", class_="star-rating")
+    product_infos["review_rating"] = (
+        star_rating["class"][1] if star_rating else "Missing data"
     )
+    img_url = soup.select_one("div.item.active img")
+    product_infos["image_url"] = img_url.get("src") if img_url else "Missing data"
+
     return product_infos
 
 
 def save_product_infos(product_infos, filename):
-    """ Writes the product informations in a csv file."""
+    """Writes the product informations in a csv file."""
     with open(filename, "w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file, delimiter=";")
+        writer = csv.writer(file, delimiter=",")
         writer.writerow(product_infos.keys())
         writer.writerow(product_infos.values())
 
@@ -92,7 +100,7 @@ def extract_whole_category(category_index_url, products_links=[]):
 
 
 def save_category_books_infos(products_infos, filename):
-    """ Writes the products informations from a whole category in a csv file."""
+    """Writes the products informations from a whole category in a csv file."""
     with open(filename, "w", newline="", encoding="utf-8") as file:
         headers = [
             "product_page_url",
@@ -136,15 +144,17 @@ def extract_all_categories(website_url):
 
 """ # Test non intéractif de la phase 1
 book_infos = extract_product_infos(
-    "http://books.toscrape.com/catalogue/the-requiem-red_995/index.html"
+    "http://books.toscrape.com/catalogue/emma_17/index.html"
 )
 # Variable pour nommer les .csv
 date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
 filename = book_infos["title"].replace(" ", "_") + "_" + date_time + ".csv"
-save_product_infos(book_infos, filename)
+save_product_infos(book_infos, filename) """
 
-# Test non intéractif de la phase 2
-category_url = "http://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+""" # Test non intéractif de la phase 2
+category_url = (
+    "http://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+)
 books_links = []
 # Une liste de tous les liens d'une catégorie définie
 books_links = extract_whole_category(category_url, books_links)
@@ -157,10 +167,10 @@ for book_link in books_links:
 # Et maintenant on enregistre cette liste de dictionnaires dans un .csv
 date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
 current_category = books_category_infos[0]["category"]
-filename = current_category + "_" + date_time + ".csv"
+filename = "scrapped_datas/" + current_category + "_" + date_time + ".csv"
 save_category_books_infos(books_category_infos, filename) """
 
-# Test phase 3: En gros, on boucle sur la phase 2
+# Test phase 3: looping on phase 2
 categories_link = extract_all_categories("http://books.toscrape.com/index.html")
 
 for link in categories_link:
