@@ -4,14 +4,22 @@ import csv
 import datetime
 
 
-# Fct pour extraire les infos d'un produit à partir de son url
 def extract_product_infos(product_page_url):
-    # Requête sur url puis transformation en objet soup
+    """
+    Takes a product url, returns the product informations.
+
+    Parameters:
+    product_page_url: str (url)
+
+    Return:
+    product_infos: dict of product informations
+    """
+    # Request the url and make our soup object
     page = requests.get(product_page_url).content
     soup = BeautifulSoup(page, "html.parser")
     product_infos = {}
 
-    # On parse pour trouver les infos voulues:
+    # Parsing to find the desired informations
     product_infos["product_page_url"] = product_page_url
     product_infos["universal_product_code"] = (
         soup.find("th", string="UPC").find_next("td").string
@@ -30,7 +38,7 @@ def extract_product_infos(product_page_url):
     product_infos["product_description"] = (
         soup.find("div", id="product_description").find_next("p").string
     )
-    # La catégorie arrive toujours après Books dans la liste de navigation:
+    # The category always comes after Books in the navigation list
     product_infos["category"] = (
         soup.find("a", href="../category/books_1/index.html").find_next("a").string
     )
@@ -43,40 +51,48 @@ def extract_product_infos(product_page_url):
     return product_infos
 
 
-# Enregistrer les infos d'un produit dans un .csv
 def save_product_infos(product_infos, filename):
+    """ Writes the product informations in a csv file."""
     with open(filename, "w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file, delimiter=";")
         writer.writerow(product_infos.keys())
         writer.writerow(product_infos.values())
 
 
-# Fct pour extraire une liste des produits d'une catégorie donnée par son url
 def extract_whole_category(category_index_url, products_links=[]):
+    """
+    Takes a category index url and returns a list of products links.
+
+    Parameters:
+    category_index_url: str (url)
+    products_links: list of str (url), optional, default empty
+
+    Return:
+    products_links: list of str (url)
+    """
     page = requests.get(category_index_url).content
     soup = BeautifulSoup(page, "html.parser")
-    # products_links = []
     site_root = "http://books.toscrape.com/catalogue/"
-    # Les liens voulus sont tous dans des <h3>:
+    # Needed anchors are all in <h3> tags
     products_list_raw = soup.select("h3 a")
-    # Liste des liens absolus à partir de la liste en relatifs
+    # Getting the relatives href and turning them in absolutes ones
     for link in products_list_raw:
         products_links.append(link.get("href").replace("../../../", site_root))
 
-    # On vérifie s'il y a d'autres pages dans la catégorie
+    # Checking if there is a next page in the category
     check_next = soup.find("li", class_="next")
     if check_next:
         current_url_suffixe = category_index_url.split("/")[-1]
         next_url_suffixe = check_next.find_next("a").get("href")
         next_url = category_index_url.replace(current_url_suffixe, next_url_suffixe)
-        # Le cas échéant on rappelle la fonction récursivement
+        # If applicable, function is called recursively
         return extract_whole_category(next_url, products_links)
     else:
         return products_links
 
 
-# Enregistrer les infos produits de toute une catégorie en .csv
 def save_category_books_infos(products_infos, filename):
+    """ Writes the products informations from a whole category in a csv file."""
     with open(filename, "w", newline="", encoding="utf-8") as file:
         headers = [
             "product_page_url",
@@ -96,8 +112,16 @@ def save_category_books_infos(products_infos, filename):
             writer.writerow(product_infos)
 
 
-# Récupérer une liste des liens de toutes les catégories
 def extract_all_categories(website_url):
+    """
+    Takes the website home page and returns a list of all categories links.
+
+    Parameters:
+    website_url: str (url)
+
+    Return:
+    categories_links: list of str (url)
+    """
     page = requests.get(website_url).content
     soup = BeautifulSoup(page, "html.parser")
     categories_anchors = soup.find("ul", class_="nav-list").find_all("a")
@@ -106,7 +130,7 @@ def extract_all_categories(website_url):
     for anchor in categories_anchors:
         link = link_prefix + anchor.get("href")
         categories_links.append(link)
-    del categories_links[0]  # Le premier lien est une catégorie générique
+    del categories_links[0]  # First link is a generic one we don't want
     return categories_links
 
 
