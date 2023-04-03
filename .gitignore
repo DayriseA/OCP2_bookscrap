@@ -1,2 +1,4 @@
 env/
+scrapped_datas/
 *.csv
+*.jpg

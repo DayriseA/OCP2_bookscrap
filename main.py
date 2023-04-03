@@ -3,11 +3,24 @@ from bs4 import BeautifulSoup
 import csv
 import datetime
 import re
+import os
+import time
+
+
+def download_img(img_url, file_path):
+    """Takes an image url and download this image to the specified file path."""
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    response = requests.get(img_url)
+    if response.status_code == 200:
+        with open(file_path, "wb") as f:
+            f.write(response.content)
+    else:
+        print("Erreur lors de la récupération de l'image " + img_url)
 
 
 def extract_product_infos(product_page_url):
     """
-    Takes a product url, returns the product informations.
+    Takes a product url, returns the product informations, download product image.
 
     Parameters:
     product_page_url: str (url)
@@ -62,17 +75,27 @@ def extract_product_infos(product_page_url):
     img_src = soup.select_one("div.item.active img")
     if img_src:
         img_relative = img_src.get("src")
+        img_ext = img_relative[-4:]
         img_url = img_relative.replace("../../", "http://books.toscrape.com/")
         product_infos["image_url"] = img_url
+        save_path = (
+            "scrapped_datas/images/"
+            + product_infos["category"]
+            + "/"
+            + product_infos["title"]
+            + img_ext
+        )
+        download_img(img_url, save_path)
     else:
         product_infos["image_url"] = "Missing data"
 
     return product_infos
 
 
-def save_product_infos(product_infos, filename):
-    """Writes the product informations in a csv file."""
-    with open(filename, "w", newline="", encoding="utf-8") as file:
+def save_product_infos(product_infos, file_path):
+    """Writes the product informations in a csv file at specified path."""
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, "w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file, delimiter=",")
         writer.writerow(product_infos.keys())
         writer.writerow(product_infos.values())
@@ -110,9 +133,10 @@ def extract_whole_category(category_index_url, products_links=[]):
         return products_links
 
 
-def save_category_books_infos(products_infos, filename):
+def save_category_books_infos(products_infos, file_path):
     """Writes the products informations from a whole category in a csv file."""
-    with open(filename, "w", newline="", encoding="utf-8") as file:
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, "w", newline="", encoding="utf-8") as file:
         headers = [
             "product_page_url",
             "universal_product_code",
@@ -155,16 +179,18 @@ def extract_all_categories(website_url):
 
 # Test non intéractif de la phase 1
 """ book_infos = extract_product_infos(
-    "http://books.toscrape.com/catalogue/emma_17/index.html"
+    "http://books.toscrape.com/catalogue/the-little-prince_72/index.html"
 )
 # Variable pour nommer les .csv
 date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
-filename = book_infos["title"].replace(" ", "_") + "_" + date_time + ".csv"
+filename = (
+    "scrapped_datas/" + book_infos["title"].replace(" ", "_") + "_" + date_time + ".csv"
+)
 save_product_infos(book_infos, filename) """
 
 # Test non intéractif de la phase 2
-category_url = (
-    "http://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+""" category_url = (
+    "http://books.toscrape.com/catalogue/category/books/romance_8/index.html"
 )
 books_links = []
 # Une liste de tous les liens d'une catégorie définie
@@ -178,13 +204,15 @@ for book_link in books_links:
 # Et maintenant on enregistre cette liste de dictionnaires dans un .csv
 date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
 current_category = books_category_infos[0]["category"]
-filename = "scrapped_datas/" + current_category + "_" + date_time + ".csv"
-save_category_books_infos(books_category_infos, filename)
+file_path = "scrapped_datas/" + current_category + "_" + date_time + ".csv"
+save_category_books_infos(books_category_infos, file_path) """
 
 # Test phase 3: looping on phase 2
-""" categories_link = extract_all_categories("http://books.toscrape.com/index.html")
+start_time = time.time()
+categories_link = extract_all_categories("http://books.toscrape.com/index.html")
 
 for link in categories_link:
+    start_time = time.time()
     books_links = []
     books_links = extract_whole_category(link, books_links)
     books_category_infos = []
@@ -193,6 +221,16 @@ for link in categories_link:
 
     date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
     current_category = books_category_infos[0]["category"]
-    filename = "scrapped_datas/" + current_category + "_" + date_time + ".csv"
-    save_category_books_infos(books_category_infos, filename)
-    print("Enregistrement de la catégorie " + current_category + " terminé") """
+    file_path = "scrapped_datas/" + current_category + "_" + date_time + ".csv"
+    save_category_books_infos(books_category_infos, file_path)
+    execution_time = time.time() - start_time
+    execution_time_min, execution_time_sec = divmod(execution_time, 60)
+    print(
+        f"Catégorie {current_category} enregistrée en "
+        f"{execution_time_min} minutes et "
+        f"{execution_time_sec} secondes."
+    )
+
+execution_time = time.time() - start_time
+execution_time_min, execution_time_sec = divmod(execution_time, 60)
+print(f"Temps total écoulé (min:sec): {execution_time_min}:{execution_time_sec}")
