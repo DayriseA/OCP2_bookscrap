@@ -78,11 +78,25 @@ def extract_product_infos(product_page_url):
         img_ext = img_relative[-4:]
         img_url = img_relative.replace("../../", "http://books.toscrape.com/")
         product_infos["image_url"] = img_url
+        purification_table = str.maketrans(
+            {
+                "\\": "_",
+                "/": "_",
+                ":": "_",
+                "*": "_",
+                "?": "_",
+                '"': "_",
+                "<": "_",
+                ">": "_",
+                "|": "_",
+            }
+        )
+        img_name = product_infos["title"].translate(purification_table)
         save_path = (
             "scrapped_datas/images/"
             + product_infos["category"]
             + "/"
-            + product_infos["title"]
+            + img_name
             + img_ext
         )
         download_img(img_url, save_path)
@@ -208,7 +222,7 @@ file_path = "scrapped_datas/" + current_category + "_" + date_time + ".csv"
 save_category_books_infos(books_category_infos, file_path) """
 
 # Test phase 3: looping on phase 2
-start_time = time.time()
+glob_start_time = time.time()
 categories_link = extract_all_categories("http://books.toscrape.com/index.html")
 
 for link in categories_link:
@@ -231,6 +245,6 @@ for link in categories_link:
         f"{execution_time_sec} secondes."
     )
 
-execution_time = time.time() - start_time
-execution_time_min, execution_time_sec = divmod(execution_time, 60)
+glob_execution_time = time.time() - glob_start_time
+execution_time_min, execution_time_sec = divmod(glob_execution_time, 60)
 print(f"Temps total écoulé (min:sec): {execution_time_min}:{execution_time_sec}")
