@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 import datetime
+import re
 
 
 def extract_product_infos(product_page_url):
@@ -37,14 +38,19 @@ def extract_product_infos(product_page_url):
         price_excl_tax.find_next("td").string if price_excl_tax else "Missing data"
     )
     availability = soup.find("th", string="Availability")
-    product_infos["number_available"] = (
-        availability.find_next("td").string if availability else "Missing data"
-    )
+    if availability:
+        availability_str = availability.find_next("td").string
+        availability_int = int(re.findall(r"\d+", availability_str)[0])
+        product_infos["number_available"] = availability_int
+    else:
+        product_infos["number_available"] = "Missing data"
+
     product_description = soup.find("div", id="product_description")
     if product_description:
         product_infos["product_description"] = product_description.find_next("p").string
     else:
         product_infos["product_description"] = "Missing data"
+
     category = soup.find("a", href="../category/books_1/index.html")
     product_infos["category"] = (
         category.find_next("a").string if category else "Missing data"
@@ -53,8 +59,13 @@ def extract_product_infos(product_page_url):
     product_infos["review_rating"] = (
         star_rating["class"][1] if star_rating else "Missing data"
     )
-    img_url = soup.select_one("div.item.active img")
-    product_infos["image_url"] = img_url.get("src") if img_url else "Missing data"
+    img_src = soup.select_one("div.item.active img")
+    if img_src:
+        img_relative = img_src.get("src")
+        img_url = img_relative.replace("../../", "http://books.toscrape.com/")
+        product_infos["image_url"] = img_url
+    else:
+        product_infos["image_url"] = "Missing data"
 
     return product_infos
 
@@ -142,8 +153,8 @@ def extract_all_categories(website_url):
     return categories_links
 
 
-""" # Test non intéractif de la phase 1
-book_infos = extract_product_infos(
+# Test non intéractif de la phase 1
+""" book_infos = extract_product_infos(
     "http://books.toscrape.com/catalogue/emma_17/index.html"
 )
 # Variable pour nommer les .csv
@@ -151,7 +162,7 @@ date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
 filename = book_infos["title"].replace(" ", "_") + "_" + date_time + ".csv"
 save_product_infos(book_infos, filename) """
 
-""" # Test non intéractif de la phase 2
+# Test non intéractif de la phase 2
 category_url = (
     "http://books.toscrape.com/catalogue/category/books/classics_6/index.html"
 )
@@ -168,10 +179,10 @@ for book_link in books_links:
 date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
 current_category = books_category_infos[0]["category"]
 filename = "scrapped_datas/" + current_category + "_" + date_time + ".csv"
-save_category_books_infos(books_category_infos, filename) """
+save_category_books_infos(books_category_infos, filename)
 
 # Test phase 3: looping on phase 2
-categories_link = extract_all_categories("http://books.toscrape.com/index.html")
+""" categories_link = extract_all_categories("http://books.toscrape.com/index.html")
 
 for link in categories_link:
     books_links = []
@@ -184,4 +195,4 @@ for link in categories_link:
     current_category = books_category_infos[0]["category"]
     filename = "scrapped_datas/" + current_category + "_" + date_time + ".csv"
     save_category_books_infos(books_category_infos, filename)
-    print("Enregistrement de la catégorie " + current_category + " terminé")
+    print("Enregistrement de la catégorie " + current_category + " terminé") """
