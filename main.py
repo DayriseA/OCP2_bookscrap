@@ -4,7 +4,6 @@ import csv
 import datetime
 import re
 import os
-import time
 
 
 def download_img(img_url, file_path):
@@ -78,6 +77,7 @@ def extract_product_infos(product_page_url):
         img_ext = img_relative[-4:]
         img_url = img_relative.replace("../../", "http://books.toscrape.com/")
         product_infos["image_url"] = img_url
+        # Handling some filenames errors with forbidden characters
         purification_table = str.maketrans(
             {
                 "\\": "_",
@@ -191,60 +191,26 @@ def extract_all_categories(website_url):
     return categories_links
 
 
-# Test non intéractif de la phase 1
-""" book_infos = extract_product_infos(
-    "http://books.toscrape.com/catalogue/the-little-prince_72/index.html"
-)
-# Variable pour nommer les .csv
-date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
-filename = (
-    "scrapped_datas/" + book_infos["title"].replace(" ", "_") + "_" + date_time + ".csv"
-)
-save_product_infos(book_infos, filename) """
+def main():
+    """
+    This function scrap the books infos we want and their cover image, regrouped
+    by categories. Said infos are saved in csv files.
+    """
+    categories_link = extract_all_categories("http://books.toscrape.com/index.html")
+    for link in categories_link:
+        books_links = []
+        books_links = extract_whole_category(link, books_links)
+        books_category_infos = []
+        for book_link in books_links:
+            books_category_infos.append(extract_product_infos(book_link))
+        date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+        current_category = books_category_infos[0]["category"]
+        file_path = "scrapped_datas/" + current_category + "_" + date_time + ".csv"
+        save_category_books_infos(books_category_infos, file_path)
+        print(f"Category {current_category} succesfully recorded in {file_path}")
 
-# Test non intéractif de la phase 2
-""" category_url = (
-    "http://books.toscrape.com/catalogue/category/books/romance_8/index.html"
-)
-books_links = []
-# Une liste de tous les liens d'une catégorie définie
-books_links = extract_whole_category(category_url, books_links)
+    print("Task succesfull")
 
-# On boucle dessus en utilisant la fonction d'extraction d'infos produits
-books_category_infos = []
-for book_link in books_links:
-    books_category_infos.append(extract_product_infos(book_link))
 
-# Et maintenant on enregistre cette liste de dictionnaires dans un .csv
-date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
-current_category = books_category_infos[0]["category"]
-file_path = "scrapped_datas/" + current_category + "_" + date_time + ".csv"
-save_category_books_infos(books_category_infos, file_path) """
-
-# Test phase 3: looping on phase 2
-glob_start_time = time.time()
-categories_link = extract_all_categories("http://books.toscrape.com/index.html")
-
-for link in categories_link:
-    start_time = time.time()
-    books_links = []
-    books_links = extract_whole_category(link, books_links)
-    books_category_infos = []
-    for book_link in books_links:
-        books_category_infos.append(extract_product_infos(book_link))
-
-    date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
-    current_category = books_category_infos[0]["category"]
-    file_path = "scrapped_datas/" + current_category + "_" + date_time + ".csv"
-    save_category_books_infos(books_category_infos, file_path)
-    execution_time = time.time() - start_time
-    execution_time_min, execution_time_sec = divmod(execution_time, 60)
-    print(
-        f"Catégorie {current_category} enregistrée en "
-        f"{execution_time_min} minutes et "
-        f"{execution_time_sec} secondes."
-    )
-
-glob_execution_time = time.time() - glob_start_time
-execution_time_min, execution_time_sec = divmod(glob_execution_time, 60)
-print(f"Temps total écoulé (min:sec): {execution_time_min}:{execution_time_sec}")
+if __name__ == "__main__":
+    main()
