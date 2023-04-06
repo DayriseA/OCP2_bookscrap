@@ -15,7 +15,10 @@ This Python program just needs `requests` and `BeautifulSoup`. Install latest ve
 pip install -r requirements.txt
 ```
 FYI, at the time of writing this we use `requests==2.28.2` and `beautifulsoup4==4.12.0`  
-Developed and tested under Python 3.11.2
+ 
+I recommend to do this in a fresh virtual environment. If you need a reminder on how to set up a virtual environment using venv, you can find the documentation [here](https://docs.python.org/3/library/venv.html).  
+
+Developed and tested under Python 3.11.2 
 
 ## Usage
 
