@@ -184,10 +184,10 @@ def extract_all_categories(website_url):
     categories_anchors = soup.find("ul", class_="nav-list").find_all("a")
     categories_links = []
     link_prefix = "http://books.toscrape.com/"
-    for anchor in categories_anchors:
+    # For the demo version, just the first 4 categories excluding Books one
+    for anchor in categories_anchors[1:5]:
         link = link_prefix + anchor.get("href")
         categories_links.append(link)
-    del categories_links[0]  # First link is a generic one we don't want
     return categories_links
 
 
