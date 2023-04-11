@@ -106,15 +106,6 @@ def extract_product_infos(product_page_url):
     return product_infos
 
 
-def save_product_infos(product_infos, file_path):
-    """Writes the product informations in a csv file at specified path."""
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    with open(file_path, "w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file, delimiter=",")
-        writer.writerow(product_infos.keys())
-        writer.writerow(product_infos.values())
-
-
 def extract_whole_category(category_index_url, products_links=[]):
     """
     Takes a category index url and returns a list of products links.
