@@ -4,10 +4,8 @@ and saves it into csv files. The program will use requests and BeautifulSoup.
 Designed to get as closer as possible to the MVC pattern.
 """
 
-import requests
-from bs4 import BeautifulSoup
-import csv
-import os
+# Imports, will see later
+
 
 def main():
     """

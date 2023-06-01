@@ -3,9 +3,20 @@
 
 class Book:
     """Books have infos we want to scrape and store"""
-    def __init__(self, url, upc, title, price_incl_tax, price_excl_tax,
-                 number_available, product_description, category, review_rating,
-                 image_url):
+
+    def __init__(
+        self,
+        url,
+        upc="",
+        title="",
+        price_incl_tax="",
+        price_excl_tax="",
+        number_available="",
+        product_description="",
+        category="",
+        review_rating="",
+        image_url="",
+    ):
         self.url = url
         self.upc = upc
         self.title = title
